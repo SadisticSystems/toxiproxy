@@ -25,6 +25,7 @@
 * Add `Dockerfile`
 * Fix latency toxic limiting bandwidth #67
 * Add Slicer toxic
+* Add CLI
 
 # 1.1.0
 
