@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,37 +17,65 @@ const (
 	greenColor  = "\x1b[32m"
 	yellowColor = "\x1b[33m"
 	blueColor   = "\x1b[34m"
+	cyanColor   = "\x1b[36m"
 	grayColor   = "\x1b[37m"
 	noColor     = "\x1b[0m"
 )
 
-var toxicSymbols = map[string]string{
-	"latency":    "L",
-	"down":       "D",
-	"bandwidth":  "B",
-	"slow_close": "SC",
-	"timeout":    "T",
-}
+var ToxicDescription = `
+	Default Toxics:
+	latency:	delay all data +/- jitter
+		latency=<ms>,jitter=<ms>
+
+	bandwidth:	limit to max kb/s
+		rate=<KB/s>
+
+	slow_close:	delay from closing
+		delay=<ms>
+
+	timeout: 	stop all data and close after timeout
+	         	timeout=<ms>
+
+	slicer: 	slice data into bits with optional delay
+	        	average_size=<byes>,size_variation=<bytes>,delay=<microseconds>
+
+	toxic add:
+		usage: toxiproxy-client add --name <proxyName> --type <toxicType> --toxicName <toxicName> \
+		--fields <key1=value1,key2=value2...> --upstream --downstream
+
+		example: toxiproxy-client toxic add -n myProxy -t latency -tn myToxic -f latency=100,jitter=50
+
+	toxic update:
+		usage: toxiproxy-client update --name <proxyName> --toxicName <toxicName> \
+		--fields <key1=value1,key2=value2...>
+		
+		example: toxiproxy-client toxic update -n myProxy -tn myToxic -f jitter=25
+	
+	toxic delete:
+		usage: toxiproxy-client update --name <proxyName> --toxicName <toxicName>
+
+		example: toxiproxy-client toxic delete -n myProxy -tn myToxic
+`
 
 func main() {
 	defer fmt.Print(noColor) // make sure to clear unwanted colors
 	toxiproxyClient := toxiproxy.NewClient("http://localhost:8474")
-	fmt.Println("UNDER JAKE DEV")
 
 	app := cli.NewApp()
 	app.Name = "Toxiproxy"
+	app.Version = "2.0"
 	app.Usage = "Simulate network and system conditions"
 	app.Commands = []cli.Command{
 		{
 			Name:    "list",
-			Usage:   "list all proxies",
+			Usage:   "list all proxies\n\tusage: 'toxiproxy-client list'\n",
 			Aliases: []string{"l", "li", "ls"},
 			Action:  withToxi(list, toxiproxyClient),
 		},
 		{
 			Name:    "inspect",
 			Aliases: []string{"i", "ins"},
-			Usage:   "inspect a single proxy",
+			Usage:   "inspect a single proxy\n\tusage: 'toxiproxy-client inspect --name <proxyName>'\n",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "name, n",
@@ -59,7 +86,7 @@ func main() {
 		},
 		{
 			Name:    "toggle",
-			Usage:   "toggle enabled status on a proxy",
+			Usage:   "\ttoggle enabled status on a proxy\n\t\tusage: 'toxiproxy-client toggle --name <proxyName>'\n",
 			Aliases: []string{"tog"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -71,7 +98,7 @@ func main() {
 		},
 		{
 			Name:    "create",
-			Usage:   "create a new proxy",
+			Usage:   "create a new proxy\n\tusage: 'toxiproxy-client create --name <proxyName> --listen <addr> --downstream <addr>'\n",
 			Aliases: []string{"c", "new"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -91,7 +118,7 @@ func main() {
 		},
 		{
 			Name:    "delete",
-			Usage:   "delete a proxy",
+			Usage:   "\tdelete a proxy\n\t\tusage: 'toxiproxy-client delete --name <proxyName>'\n",
 			Aliases: []string{"d"},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -102,9 +129,10 @@ func main() {
 			Action: withToxi(delete, toxiproxyClient),
 		},
 		{
-			Name:    "toxic",
-			Aliases: []string{"t"},
-			Usage:   "add, remove or update a toxic",
+			Name:        "toxic",
+			Aliases:     []string{"t"},
+			Usage:       "\tadd, remove or update a toxic\n\t\tusage: see 'toxiproxy-client toxic'\n",
+			Description: ToxicDescription,
 			Subcommands: []cli.Command{
 				{
 					Name:    "add",
@@ -192,7 +220,7 @@ func withToxi(f toxiAction, t *toxiproxy.Client) func(*cli.Context) {
 func list(c *cli.Context, t *toxiproxy.Client) {
 	proxies, err := t.Proxies()
 	if err != nil {
-		log.Fatalln("Failed to retrieve proxies: ", err)
+		fatalf("Failed to retrieve proxies: %s", err)
 	}
 
 	var proxyNames []string
@@ -201,30 +229,62 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 	}
 	sort.Strings(proxyNames)
 
-	fmt.Fprintf(os.Stderr, "%sListen\t\t%sUpstream\t%sName%s\n", blueColor, yellowColor, greenColor, noColor)
+	fmt.Fprintf(os.Stderr, "%sListen\t\t%sUpstream\t%sName\t%sToxics\n%s", blueColor, yellowColor, greenColor, redColor, noColor)
 	fmt.Fprintf(os.Stderr, "%s================================================================================%s\n", grayColor, noColor)
+
+	if len(proxyNames) == 0 {
+		fmt.Printf("%sno proxies\n\n", redColor)
+		hint("create a proxy with `toxiproxy-client create`")
+		return
+	}
 
 	for _, proxyName := range proxyNames {
 		proxy := proxies[proxyName]
-		fmt.Printf("%s%s\t%s%s\t%s%s%s\n", blueColor, proxy.Listen, yellowColor, proxy.Upstream, enabledColor(proxy.Enabled), proxy.Name, noColor)
+		numToxics := strconv.Itoa(len(proxy.ActiveToxics))
+		if numToxics == "0" {
+			numToxics = "None"
+		}
+		fmt.Printf("%s%s\t%s%s\t%s%s\t%s%s%s\n", blueColor, proxy.Listen, yellowColor, proxy.Upstream,
+			enabledColor(proxy.Enabled), proxy.Name, redColor, numToxics, noColor)
 	}
+	fmt.Println()
+	hint("inspect a toxic with `toxiproxy-client inspect -n <name>`")
 }
 func inspect(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := getArgOrFail(c, "name")
 
 	proxy, err := t.Proxy(proxyName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
-	toxicPipe := formatToxicPipe(proxy.ActiveToxics)
+	fmt.Printf("%sproxy name: %s%s%s\n", noColor, enabledColor(proxy.Enabled), proxy.Name, noColor)
+	fmt.Printf("%slisten: %s%s %s---> upstream: %s%s%s\n\n", noColor, blueColor, proxy.Listen, noColor, yellowColor, proxy.Upstream, noColor)
 
-	fmt.Printf("%s%s%s\n", enabledColor(proxy.Enabled), proxy.Name, noColor)
-	fmt.Printf("%s%s %s--%s-> %s%s%s\n\n", blueColor, proxy.Listen, grayColor, toxicPipe, yellowColor, proxy.Upstream, noColor)
+	splitToxics := func(toxics toxiproxy.Toxics) (toxiproxy.Toxics, toxiproxy.Toxics) {
+		upstream := make(toxiproxy.Toxics)
+		downstream := make(toxiproxy.Toxics)
+		for k, toxic := range toxics {
+			if toxic["stream"].(string) == "upstream" {
+				upstream[k] = toxic
+			} else {
+				downstream[k] = toxic
+			}
+		}
+		return upstream, downstream
+	}
 
-	listToxics(proxy.ActiveToxics, "upstream")
+	if len(proxy.ActiveToxics) == 0 {
+		fmt.Printf("%sno toxics\n", redColor)
+	} else {
+		up, down := splitToxics(proxy.ActiveToxics)
+		listToxics(up, "upstream")
+		fmt.Println()
+		listToxics(down, "downstream")
+	}
 	fmt.Println()
-	listToxics(proxy.ActiveToxics, "downstream")
+
+	hint("add a toxic with `toxiproxy-client toxic add`")
 }
 
 func toggle(c *cli.Context, t *toxiproxy.Client) {
@@ -232,14 +292,14 @@ func toggle(c *cli.Context, t *toxiproxy.Client) {
 
 	proxy, err := t.Proxy(proxyName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
 	proxy.Enabled = !proxy.Enabled
 
 	err = proxy.Save()
 	if err != nil {
-		log.Fatalf("Failed to toggle proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to toggle proxy %s: %s\n", proxyName, err.Error())
 	}
 
 	fmt.Printf("Proxy %s%s%s is now %s%s%s\n", enabledColor(proxy.Enabled), proxyName, noColor, enabledColor(proxy.Enabled), enabledText(proxy.Enabled), noColor)
@@ -251,7 +311,7 @@ func create(c *cli.Context, t *toxiproxy.Client) {
 	upstream := getArgOrFail(c, "upstream")
 	_, err := t.CreateProxy(proxyName, listen, upstream)
 	if err != nil {
-		log.Fatalf("Failed to create proxy: %s\n", err.Error())
+		fatalf("Failed to create proxy: %s\n", err.Error())
 	}
 	fmt.Printf("Created new proxy %s\n", proxyName)
 }
@@ -260,12 +320,12 @@ func delete(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := getArgOrFail(c, "name")
 	p, err := t.Proxy(proxyName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
 	err = p.Delete()
 	if err != nil {
-		log.Fatalf("Failed to delete proxy: %s\n", err.Error())
+		fatalf("Failed to delete proxy: %s\n", err.Error())
 	}
 	fmt.Printf("Deleted proxy %s\n", proxyName)
 }
@@ -283,14 +343,15 @@ func addToxic(c *cli.Context, t *toxiproxy.Client) {
 
 	p, err := t.Proxy(proxyName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
 	addToxic := func(stream string) {
-		_, err := p.AddToxic(toxicName, toxicType, stream, fields)
+		t, err := p.AddToxic(toxicName, toxicType, stream, fields)
 		if err != nil {
-			log.Fatalf("Failed to set toxic: %s\n", err.Error())
+			fatalf("Failed to set toxic: %s\n", err.Error())
 		}
+		toxicName = t["name"].(string)
 		fmt.Printf("Set %s %s toxic '%s' on proxy '%s'\n", stream, toxicType, toxicName, proxyName)
 	}
 
@@ -312,12 +373,12 @@ func updateToxic(c *cli.Context, t *toxiproxy.Client) {
 
 	p, err := t.Proxy(proxyName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
 	_, err = p.UpdateToxic(toxicName, fields)
 	if err != nil {
-		log.Fatal("Failed to update toxic: %s\n", err.Error())
+		fatalf("Failed to update toxic: %s\n", err.Error())
 	}
 
 	fmt.Printf("Updated toxic '%s' on proxy '%s'\n", toxicName, proxyName)
@@ -329,12 +390,12 @@ func removeToxic(c *cli.Context, t *toxiproxy.Client) {
 
 	p, err := t.Proxy(proxyName)
 	if err != nil {
-		log.Fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
+		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
 	err = p.RemoveToxic(toxicName)
 	if err != nil {
-		log.Fatal("Failed to remove toxic: %s\n", err.Error())
+		fatalf("Failed to remove toxic: %s\n", err.Error())
 	}
 
 	fmt.Printf("Removed toxic '%s' on proxy '%s'\n", toxicName, proxyName)
@@ -346,11 +407,11 @@ func parseFields(raw string) toxiproxy.Toxic {
 	for _, keyValue := range keyValues {
 		kv := strings.SplitN(keyValue, "=", 2)
 		if len(kv) != 2 {
-			log.Fatal("Fields should be in format key1=value1,key2=value2\n")
+			fatalf("Fields should be in format key1=value1,key2=value2\n")
 		}
 		value, err := strconv.Atoi(kv[1])
 		if err != nil {
-			log.Fatal("Toxic field was expected to be an integer.\n")
+			fatalf("Toxic field was expected to be an integer.\n")
 		}
 		parsed[kv[0]] = value
 	}
@@ -374,12 +435,16 @@ func enabledText(enabled bool) string {
 }
 
 func listToxics(toxics toxiproxy.Toxics, stream string) {
-	fmt.Printf("%s%s\n", noColor, stream)
+	if len(toxics) == 0 {
+		fmt.Printf("%sno %s toxics\n", redColor, stream)
+		return
+	}
+	fmt.Printf("%s%s toxics:\n", noColor, stream)
 	for name, toxic := range toxics {
 		if toxic["stream"].(string) != stream {
 			continue
 		}
-		fmt.Printf("%s%s stream=%s", greenColor, name, stream)
+		fmt.Printf("%s%s:", greenColor, name)
 		for property, value := range toxic {
 			fmt.Printf(" %s=", property)
 			fmt.Print(value)
@@ -391,20 +456,16 @@ func listToxics(toxics toxiproxy.Toxics, stream string) {
 func getArgOrFail(c *cli.Context, name string) string {
 	arg := c.String(name)
 	if arg == "" {
-		log.Fatalf("Required argument '%s' was empty.\n", name)
+		fatalf("Required argument '%s' was empty.\n", name)
 	}
 	return arg
 }
 
-func formatToxicPipe(toxics toxiproxy.Toxics) string {
-	var pipe string
-	for _, t := range toxics {
-		kind := t["type"].(string)
-		s, ok := toxicSymbols[kind]
-		if !ok {
-			log.Printf("Cannot find symbol for '%s' toxic\n", kind)
-		}
-		pipe += s + "-"
-	}
-	return pipe
+func hint(m string) {
+	fmt.Printf("%sHint: %s\n", cyanColor, m)
+}
+
+func fatalf(m string, args ...interface{}) {
+	fmt.Printf(m, args...)
+	os.Exit(1)
 }
