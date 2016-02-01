@@ -18,6 +18,7 @@ const (
 	yellowColor = "\x1b[33m"
 	blueColor   = "\x1b[34m"
 	cyanColor   = "\x1b[36m"
+	purpleColor = "\x1b[35m"
 	grayColor   = "\x1b[37m"
 	noColor     = "\x1b[0m"
 )
@@ -229,7 +230,8 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 	}
 	sort.Strings(proxyNames)
 
-	fmt.Fprintf(os.Stderr, "%sListen\t\t%sUpstream\t%sName\t%sToxics\n%s", blueColor, yellowColor, greenColor, redColor, noColor)
+	fmt.Fprintf(os.Stderr, "%sListen\t\t%sUpstream\t%sName\t%sEnabled\t%sToxics\n%s", blueColor, yellowColor,
+		greenColor, purpleColor, redColor, noColor)
 	fmt.Fprintf(os.Stderr, "%s================================================================================%s\n", grayColor, noColor)
 
 	if len(proxyNames) == 0 {
@@ -244,8 +246,8 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 		if numToxics == "0" {
 			numToxics = "None"
 		}
-		fmt.Printf("%s%s\t%s%s\t%s%s\t%s%s%s\n", blueColor, proxy.Listen, yellowColor, proxy.Upstream,
-			enabledColor(proxy.Enabled), proxy.Name, redColor, numToxics, noColor)
+		fmt.Printf("%s%s\t%s%s\t%s%s\t%s%v\t%s%s%s\n", blueColor, proxy.Listen, yellowColor, proxy.Upstream,
+			enabledColor(proxy.Enabled), proxy.Name, purpleColor, proxy.Enabled, redColor, numToxics, noColor)
 	}
 	fmt.Println()
 	hint("inspect a toxic with `toxiproxy-client inspect -n <name>`")
