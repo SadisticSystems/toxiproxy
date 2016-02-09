@@ -197,7 +197,7 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 
 	fmt.Fprintf(os.Stderr, "%sListen\t\t%sUpstream\t%sName\t%sEnabled\t%sToxics\n%s", blueColor, yellowColor,
 		greenColor, purpleColor, redColor, noColor)
-	fmt.Fprintf(os.Stderr, "%s================================================================================%s\n", noColor, noColor)
+	fmt.Fprintf(os.Stderr, "%s======================================================================%s\n", noColor)
 
 	if len(proxyNames) == 0 {
 		fmt.Printf("%sno proxies\n\n%s", redColor, noColor)
@@ -229,8 +229,10 @@ func inspect(c *cli.Context, t *toxiproxy.Client) {
 		fatalf("Failed to retrieve proxy %s: %s\n", proxyName, err.Error())
 	}
 
-	fmt.Printf("%sproxy name: %s%s%s\n", noColor, enabledColor(proxy.Enabled), proxy.Name, noColor)
-	fmt.Printf("%slisten: %s%s %s---> upstream: %s%s%s\n\n", noColor, blueColor, proxy.Listen, noColor, yellowColor, proxy.Upstream, noColor)
+	fmt.Printf("%sName: %s%s\t", purpleColor, noColor, proxy.Name)
+	fmt.Printf("%sListen: %s%s\t", blueColor, noColor, proxy.Listen)
+	fmt.Printf("%sUpstream: %s%s\n", yellowColor, noColor, proxy.Upstream)
+	fmt.Printf("%s======================================================================\n", noColor)
 
 	splitToxics := func(toxics toxiproxy.Toxics) (toxiproxy.Toxics, toxiproxy.Toxics) {
 		upstream := make(toxiproxy.Toxics)
@@ -246,12 +248,12 @@ func inspect(c *cli.Context, t *toxiproxy.Client) {
 	}
 
 	if len(proxy.ActiveToxics) == 0 {
-		fmt.Printf("%sno toxics\n%s", redColor, noColor)
+		fmt.Printf("%sProxy has no toxics enabled.\n%s", redColor, noColor)
 	} else {
 		up, down := splitToxics(proxy.ActiveToxics)
-		listToxics(up, "upstream")
+		listToxics(up, "Upstream")
 		fmt.Println()
-		listToxics(down, "downstream")
+		listToxics(down, "Downstream")
 	}
 	fmt.Println()
 
@@ -430,15 +432,12 @@ func enabledText(enabled bool) string {
 }
 
 func listToxics(toxics toxiproxy.Toxics, stream string) {
+	fmt.Printf("%s%s toxics:\n%s", greenColor, stream, noColor)
 	if len(toxics) == 0 {
-		fmt.Printf("%sno %s toxics\n%s", redColor, stream, noColor)
+		fmt.Printf("%sProxy has no %s toxics enabled.\n%s", redColor, stream, noColor)
 		return
 	}
-	fmt.Printf("%s%s toxics:\n", noColor, stream)
 	for name, toxic := range toxics {
-		if toxic["stream"].(string) != stream {
-			continue
-		}
 		fmt.Printf("%s%s:%s", greenColor, name, noColor)
 		for property, value := range toxic {
 			fmt.Printf(" %s=", property)
