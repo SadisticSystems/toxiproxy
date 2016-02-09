@@ -63,7 +63,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = "Toxiproxy"
-	app.Version = "2.0"
+	app.Version = "2.0-alpha" // We're still improving the client ui.
 	app.Usage = "Simulate network and system conditions"
 	app.Commands = []cli.Command{
 		{
