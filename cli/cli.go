@@ -450,7 +450,7 @@ func getArgOrFail(c *cli.Context, name string) string {
 }
 
 func hint(m string) {
-	fmt.Printf("%sHint: %s\n%s", cyanColor, m, noColor)
+	fmt.Printf("%sHint: %s\n", noColor, m)
 }
 
 func fatalf(m string, args ...interface{}) {
