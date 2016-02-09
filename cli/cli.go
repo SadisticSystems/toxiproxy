@@ -197,7 +197,7 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 
 	fmt.Fprintf(os.Stderr, "%sListen\t\t%sUpstream\t%sName\t%sEnabled\t%sToxics\n%s", blueColor, yellowColor,
 		greenColor, purpleColor, redColor, noColor)
-	fmt.Fprintf(os.Stderr, "%s================================================================================%s\n", grayColor, noColor)
+	fmt.Fprintf(os.Stderr, "%s================================================================================%s\n", noColor, noColor)
 
 	if len(proxyNames) == 0 {
 		fmt.Printf("%sno proxies\n\n%s", redColor, noColor)
