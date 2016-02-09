@@ -59,7 +59,6 @@ var ToxicDescription = `
 `
 
 func main() {
-	defer fmt.Print(noColor) // make sure to clear unwanted colors
 	toxiproxyClient := toxiproxy.NewClient("http://localhost:8474")
 
 	app := cli.NewApp()
@@ -201,7 +200,7 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 	fmt.Fprintf(os.Stderr, "%s================================================================================%s\n", grayColor, noColor)
 
 	if len(proxyNames) == 0 {
-		fmt.Printf("%sno proxies\n\n", redColor)
+		fmt.Printf("%sno proxies\n\n%s", redColor, noColor)
 		hint("create a proxy with `toxiproxy-client create`")
 		return
 	}
@@ -246,7 +245,7 @@ func inspect(c *cli.Context, t *toxiproxy.Client) {
 	}
 
 	if len(proxy.ActiveToxics) == 0 {
-		fmt.Printf("%sno toxics\n", redColor)
+		fmt.Printf("%sno toxics\n%s", redColor, noColor)
 	} else {
 		up, down := splitToxics(proxy.ActiveToxics)
 		listToxics(up, "upstream")
@@ -425,7 +424,7 @@ func enabledText(enabled bool) string {
 
 func listToxics(toxics toxiproxy.Toxics, stream string) {
 	if len(toxics) == 0 {
-		fmt.Printf("%sno %s toxics\n", redColor, stream)
+		fmt.Printf("%sno %s toxics\n%s", redColor, stream, noColor)
 		return
 	}
 	fmt.Printf("%s%s toxics:\n", noColor, stream)
@@ -433,7 +432,7 @@ func listToxics(toxics toxiproxy.Toxics, stream string) {
 		if toxic["stream"].(string) != stream {
 			continue
 		}
-		fmt.Printf("%s%s:", greenColor, name)
+		fmt.Printf("%s%s:%s", greenColor, name, noColor)
 		for property, value := range toxic {
 			fmt.Printf(" %s=", property)
 			fmt.Print(value)
@@ -451,7 +450,7 @@ func getArgOrFail(c *cli.Context, name string) string {
 }
 
 func hint(m string) {
-	fmt.Printf("%sHint: %s\n", cyanColor, m)
+	fmt.Printf("%sHint: %s\n%s", cyanColor, m, noColor)
 }
 
 func fatalf(m string, args ...interface{}) {
