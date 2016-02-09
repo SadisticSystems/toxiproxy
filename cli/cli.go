@@ -220,6 +220,7 @@ func list(c *cli.Context, t *toxiproxy.Client) {
 func inspect(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 
@@ -260,6 +261,7 @@ func inspect(c *cli.Context, t *toxiproxy.Client) {
 func toggle(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 
@@ -281,6 +283,7 @@ func toggle(c *cli.Context, t *toxiproxy.Client) {
 func create(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 	listen := getArgOrFail(c, "listen")
@@ -295,6 +298,7 @@ func create(c *cli.Context, t *toxiproxy.Client) {
 func delete(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 	p, err := t.Proxy(proxyName)
@@ -312,6 +316,7 @@ func delete(c *cli.Context, t *toxiproxy.Client) {
 func addToxic(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 	toxicName := c.String("toxicName")
@@ -349,6 +354,7 @@ func addToxic(c *cli.Context, t *toxiproxy.Client) {
 func updateToxic(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 	toxicName := getArgOrFail(c, "toxicName")
@@ -372,6 +378,7 @@ func updateToxic(c *cli.Context, t *toxiproxy.Client) {
 func removeToxic(c *cli.Context, t *toxiproxy.Client) {
 	proxyName := c.Args().First()
 	if proxyName == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Proxy name is required as the first argument.\n")
 	}
 	toxicName := getArgOrFail(c, "toxicName")
@@ -444,6 +451,7 @@ func listToxics(toxics toxiproxy.Toxics, stream string) {
 func getArgOrFail(c *cli.Context, name string) string {
 	arg := c.String(name)
 	if arg == "" {
+		cli.ShowSubcommandHelp(c)
 		fatalf("Required argument '%s' was empty.\n", name)
 	}
 	return arg
