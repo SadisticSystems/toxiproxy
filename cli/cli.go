@@ -114,7 +114,7 @@ func main() {
 			Subcommands: []cli.Command{
 				{
 					Name:    "add",
-					Aliases: []string{"a", "set", "s"},
+					Aliases: []string{"a"},
 					Usage:   "add a new toxic",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -131,11 +131,11 @@ func main() {
 						},
 						cli.BoolFlag{
 							Name:  "upstream, u",
-							Usage: "set toxic on upstream",
+							Usage: "add toxic to upstream",
 						},
 						cli.BoolFlag{
 							Name:  "downstream, d",
-							Usage: "set toxic on downstream",
+							Usage: "add toxic to downstream",
 						},
 					},
 					Action: withToxi(addToxic, toxiproxyClient),
@@ -331,10 +331,10 @@ func addToxic(c *cli.Context, t *toxiproxy.Client) {
 	addToxic := func(stream string) {
 		t, err := p.AddToxic(toxicName, toxicType, stream, fields)
 		if err != nil {
-			fatalf("Failed to set toxic: %s\n", err.Error())
+			fatalf("Failed to add toxic: %s\n", err.Error())
 		}
 		toxicName = t["name"].(string)
-		fmt.Printf("Set %s %s toxic '%s' on proxy '%s'\n", stream, toxicType, toxicName, proxyName)
+		fmt.Printf("Added %s %s toxic '%s' on proxy '%s'\n", stream, toxicType, toxicName, proxyName)
 	}
 
 	if upstream {
