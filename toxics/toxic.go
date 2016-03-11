@@ -53,12 +53,12 @@ func (w *ToxicWrapper) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	output := wrapper[:len(wrapper)-1]
-	if len(toxic) > 2 {
-		output = append(output, ',')
-		output = append(output, toxic[1:len(toxic)-1]...)
-	}
+	output = append(output, ",\"attributes\":"...)
+	output = append(output, toxic...)
 	output = append(output, '}')
+
 	return output, nil
 }
 

@@ -17,7 +17,14 @@ type Client struct {
 	endpoint string
 }
 
-type Toxic map[string]interface{}
+type Toxic struct {
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	Stream     string                 `json:"stream"`
+	Toxicity   float32                `json:"toxicity"`
+	Attributes map[string]interface{} `json:"attributes"`
+}
+
 type Toxics []Toxic
 
 // Proxy represents a Proxy.
@@ -229,17 +236,13 @@ func (proxy *Proxy) Toxics() (Toxics, error) {
 // If a name is not specified, it will default to the same as the type.
 // If a stream is not specified, it will default to downstream.
 // See https://github.com/Shopify/toxiproxy#toxics for a list of all Toxic types.
-func (proxy *Proxy) AddToxic(name, typeName, stream string, toxic Toxic) (Toxic, error) {
+func (proxy *Proxy) AddToxic(name, typeName, stream string, toxic *Toxic) (*Toxic, error) {
 	if toxic == nil {
-		toxic = make(Toxic)
+		toxic = &Toxic{}
 	}
-	toxic["type"] = typeName
-	if name != "" {
-		toxic["name"] = name
-	}
-	if stream != "" {
-		toxic["stream"] = stream
-	}
+	toxic.Name = name
+	toxic.Type = typeName
+	toxic.Stream = stream
 
 	request, err := json.Marshal(toxic)
 	if err != nil {
@@ -256,17 +259,17 @@ func (proxy *Proxy) AddToxic(name, typeName, stream string, toxic Toxic) (Toxic,
 		return nil, err
 	}
 
-	toxics := make(Toxic)
-	err = json.NewDecoder(resp.Body).Decode(&toxics)
+	result := &Toxic{}
+	err = json.NewDecoder(resp.Body).Decode(result)
 	if err != nil {
 		return nil, err
 	}
 
-	return toxics, nil
+	return result, nil
 }
 
 // UpdateToxic sets the parameters for an existing toxic with the given name.
-func (proxy *Proxy) UpdateToxic(name string, toxic Toxic) (Toxic, error) {
+func (proxy *Proxy) UpdateToxic(name string, toxic *Toxic) (*Toxic, error) {
 	request, err := json.Marshal(toxic)
 	if err != nil {
 		return nil, err
@@ -282,13 +285,13 @@ func (proxy *Proxy) UpdateToxic(name string, toxic Toxic) (Toxic, error) {
 		return nil, err
 	}
 
-	toxics := make(Toxic)
-	err = json.NewDecoder(resp.Body).Decode(&toxics)
+	result := &Toxic{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		return nil, err
 	}
 
-	return toxics, nil
+	return result, nil
 }
 
 // RemoveToxic renives the toxic with the given name.

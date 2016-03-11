@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Shopify/toxiproxy/client"
 	"github.com/Shopify/toxiproxy/stream"
 	"github.com/Shopify/toxiproxy/toxics"
 )
@@ -87,7 +88,6 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 
 	var buffer bytes.Buffer
 
-	// Default to a downstream toxic
 	wrapper := &toxics.ToxicWrapper{
 		Stream:   "downstream",
 		Toxicity: 1.0,
@@ -97,6 +97,15 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 	if err != nil {
 		return nil, joinError(err, ErrBadRequestBody)
 	}
+
+	// Default to a downstream toxic with toxicity 1
+	if wrapper.Stream == "" {
+		wrapper.Stream = "downstream"
+	}
+	if wrapper.Toxicity == 0 {
+		wrapper.Toxicity = 1
+	}
+
 	if wrapper.Name == "" {
 		wrapper.Name = wrapper.Type
 	}
@@ -120,7 +129,14 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 			}
 		}
 	}
-	err = json.NewDecoder(&buffer).Decode(wrapper.Toxic)
+
+	attrs := &struct {
+		Attributes interface{} `json:attributes`
+	}{
+		wrapper.Toxic,
+	}
+
+	err = json.NewDecoder(&buffer).Decode(attrs)
 	if err != nil {
 		return nil, joinError(err, ErrBadRequestBody)
 	}
@@ -135,7 +151,7 @@ func (c *ToxicCollection) UpdateToxicJson(name string, data io.Reader) (*toxics.
 	defer c.Unlock()
 
 	var buffer bytes.Buffer
-	all := make(map[string]interface{})
+	all := toxiproxy.Toxic{}
 	err := json.NewDecoder(io.TeeReader(data, &buffer)).Decode(&all)
 	if err != nil {
 		return nil, joinError(err, ErrBadRequestBody)
@@ -144,14 +160,18 @@ func (c *ToxicCollection) UpdateToxicJson(name string, data io.Reader) (*toxics.
 	for dir := range c.toxics {
 		for _, toxic := range c.toxics[dir] {
 			if toxic.Name == name {
-				err := json.NewDecoder(&buffer).Decode(toxic.Toxic)
+				attrs := &struct {
+					Attributes interface{} `json:attributes`
+				}{
+					toxic.Toxic,
+				}
+				err = json.NewDecoder(&buffer).Decode(attrs)
 				if err != nil {
 					return nil, joinError(err, ErrBadRequestBody)
 				}
-				if val, ok := all["toxicity"]; ok {
-					if toxicity, ok := val.(float64); ok {
-						toxic.Toxicity = float32(toxicity)
-					}
+
+				if all.Toxicity != 0 {
+					toxic.Toxicity = all.Toxicity
 				}
 
 				c.chainUpdateToxic(toxic)

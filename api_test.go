@@ -309,15 +309,17 @@ func TestResetState(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("", "latency", "downstream", tclient.Toxic{
-			"latency": 100,
-			"jitter":  10,
+		latency, err := testProxy.AddToxic("", "latency", "downstream", &tclient.Toxic{
+			Attributes: map[string]interface{}{
+				"latency": 100,
+				"jitter":  10,
+			},
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		if latency["latency"] != 100.0 || latency["jitter"] != 10.0 {
+		if latency.Attributes["latency"] != 100.0 || latency.Attributes["jitter"] != 10.0 {
 			t.Fatal("Latency toxic did not start up with correct settings")
 		}
 
@@ -373,15 +375,17 @@ func TestAddToxic(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("foobar", "latency", "downstream", tclient.Toxic{
-			"latency": 100,
-			"jitter":  10,
+		latency, err := testProxy.AddToxic("foobar", "latency", "downstream", &tclient.Toxic{
+			Attributes: map[string]interface{}{
+				"latency": 100,
+				"jitter":  10,
+			},
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		if latency["latency"] != 100.0 || latency["jitter"] != 10.0 {
+		if latency.Attributes["latency"] != 100.0 || latency.Attributes["jitter"] != 10.0 {
 			t.Fatal("Latency toxic did not start up with correct settings")
 		}
 
@@ -390,7 +394,7 @@ func TestAddToxic(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "foobar", "latency", "downstream", true)
-		if toxic["toxicity"] != 1.0 || toxic["latency"] != 100.0 || toxic["jitter"] != 10.0 {
+		if toxic.Toxicity != 1.0 || toxic.Attributes["latency"] != 100.0 || toxic.Attributes["jitter"] != 10.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 	})
@@ -403,12 +407,12 @@ func TestAddMultipleToxics(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("latency1", "latency", "downstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("latency1", "latency", "downstream", nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		_, err = testProxy.AddToxic("latency2", "latency", "downstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("latency2", "latency", "downstream", nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
@@ -419,7 +423,7 @@ func TestAddMultipleToxics(t *testing.T) {
 		}
 		AssertToxicExists(t, toxics, "latency1", "latency", "downstream", true)
 		toxic := AssertToxicExists(t, toxics, "latency2", "latency", "downstream", true)
-		if toxic["toxicity"] != 1.0 || toxic["latency"] != 0.0 || toxic["jitter"] != 0.0 {
+		if toxic.Toxicity != 1.0 || toxic.Attributes["latency"] != 0.0 || toxic.Attributes["jitter"] != 0.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 		AssertToxicExists(t, toxics, "latency1", "", "upstream", false)
@@ -434,12 +438,12 @@ func TestAddConflictingToxic(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("foobar", "latency", "downstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("foobar", "latency", "downstream", nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		_, err = testProxy.AddToxic("foobar", "slow_close", "downstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("foobar", "slow_close", "downstream", nil)
 		if err == nil {
 			t.Fatal("Toxic did not result in conflict.")
 		} else if err.Error() != "AddToxic: HTTP 409: toxic already exists" {
@@ -451,7 +455,7 @@ func TestAddConflictingToxic(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "foobar", "latency", "downstream", true)
-		if toxic["toxicity"] != 1.0 || toxic["latency"] != 0.0 || toxic["jitter"] != 0.0 {
+		if toxic.Toxicity != 1.0 || toxic.Attributes["latency"] != 0.0 || toxic.Attributes["jitter"] != 0.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 		AssertToxicExists(t, toxics, "foobar", "", "upstream", false)
@@ -465,12 +469,12 @@ func TestAddConflictingToxicsMultistream(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "upstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("", "latency", "upstream", nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "downstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("", "latency", "downstream", nil)
 		if err == nil {
 			t.Fatal("Toxic did not result in conflict.")
 		} else if err.Error() != "AddToxic: HTTP 409: toxic already exists" {
@@ -482,7 +486,7 @@ func TestAddConflictingToxicsMultistream(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "latency", "latency", "upstream", true)
-		if toxic["toxicity"] != 1.0 || toxic["latency"] != 0.0 || toxic["jitter"] != 0.0 {
+		if toxic.Toxicity != 1.0 || toxic.Attributes["latency"] != 0.0 || toxic.Attributes["jitter"] != 0.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 		AssertToxicExists(t, toxics, "latency", "", "downstream", false)
@@ -496,16 +500,18 @@ func TestAddToxicWithToxicity(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("", "latency", "downstream", tclient.Toxic{
-			"latency":  100,
-			"jitter":   10,
-			"toxicity": 0.2,
+		latency, err := testProxy.AddToxic("", "latency", "downstream", &tclient.Toxic{
+			Toxicity: 0.2,
+			Attributes: map[string]interface{}{
+				"latency": 100,
+				"jitter":  10,
+			},
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		if latency["toxicity"] != 0.2 || latency["latency"] != 100.0 || latency["jitter"] != 10.0 {
+		if latency.Toxicity != 0.2 || latency.Attributes["latency"] != 100.0 || latency.Attributes["jitter"] != 10.0 {
 			t.Fatal("Latency toxic did not start up with correct settings:", latency)
 		}
 
@@ -514,7 +520,7 @@ func TestAddToxicWithToxicity(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "latency", "latency", "downstream", true)
-		if toxic["toxicity"] != 0.2 || toxic["latency"] != 100.0 || toxic["jitter"] != 10.0 {
+		if toxic.Toxicity != 0.2 || toxic.Attributes["latency"] != 100.0 || toxic.Attributes["jitter"] != 10.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 	})
@@ -532,7 +538,7 @@ func TestAddNoop(t *testing.T) {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		if noop["toxicity"] != 1.0 || noop["name"] != "foobar" || noop["type"] != "noop" || noop["stream"] != "downstream" {
+		if noop.Toxicity != 1.0 || noop.Name != "foobar" || noop.Type != "noop" || noop.Stream != "downstream" {
 			t.Fatal("Noop toxic did not start up with correct settings:", noop)
 		}
 
@@ -541,7 +547,7 @@ func TestAddNoop(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "foobar", "noop", "downstream", true)
-		if toxic["toxicity"] != 1.0 {
+		if toxic.Toxicity != 1.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 	})
@@ -554,27 +560,31 @@ func TestUpdateToxics(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("", "latency", "downstream", tclient.Toxic{
-			"latency": 100,
-			"jitter":  10,
+		latency, err := testProxy.AddToxic("", "latency", "downstream", &tclient.Toxic{
+			Attributes: map[string]interface{}{
+				"latency": 100,
+				"jitter":  10,
+			},
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		if latency["toxicity"] != 1.0 || latency["latency"] != 100.0 || latency["jitter"] != 10.0 {
+		if latency.Toxicity != 1.0 || latency.Attributes["latency"] != 100.0 || latency.Attributes["jitter"] != 10.0 {
 			t.Fatal("Latency toxic did not start up with correct settings:", latency)
 		}
 
-		latency, err = testProxy.UpdateToxic("latency", tclient.Toxic{
-			"latency":  1000,
-			"toxicity": 0.5,
+		latency, err = testProxy.UpdateToxic("latency", &tclient.Toxic{
+			Toxicity: 0.5,
+			Attributes: map[string]interface{}{
+				"latency": 1000,
+			},
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		if latency["toxicity"] != 0.5 || latency["latency"] != 1000.0 || latency["jitter"] != 10.0 {
+		if latency.Toxicity != 0.5 || latency.Attributes["latency"] != 1000.0 || latency.Attributes["jitter"] != 10.0 {
 			t.Fatal("Latency toxic did not get updated with the correct settings:", latency)
 		}
 
@@ -583,7 +593,7 @@ func TestUpdateToxics(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "latency", "latency", "downstream", true)
-		if toxic["toxicity"] != 0.5 || toxic["latency"] != 1000.0 || toxic["jitter"] != 10.0 {
+		if toxic.Toxicity != 0.5 || toxic.Attributes["latency"] != 1000.0 || toxic.Attributes["jitter"] != 10.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 	})
@@ -596,7 +606,7 @@ func TestRemoveToxic(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "downstream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("", "latency", "downstream", nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
@@ -606,7 +616,7 @@ func TestRemoveToxic(t *testing.T) {
 			t.Fatal("Error returning toxics:", err)
 		}
 		toxic := AssertToxicExists(t, toxics, "latency", "latency", "downstream", true)
-		if toxic["toxicity"] != 1.0 || toxic["latency"] != 0.0 || toxic["jitter"] != 0.0 {
+		if toxic.Toxicity != 1.0 || toxic.Attributes["latency"] != 0.0 || toxic.Attributes["jitter"] != 0.0 {
 			t.Fatal("Toxic was not read back correctly:", toxic)
 		}
 
@@ -648,32 +658,28 @@ func TestInvalidStream(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "walrustream", tclient.Toxic{})
+		_, err = testProxy.AddToxic("", "latency", "walrustream", nil)
 		if err == nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 	})
 }
 
-func findToxic(t *testing.T, name string, toxics tclient.Toxics) (tclient.Toxic, bool) {
+func findToxic(t *testing.T, name string, toxics tclient.Toxics) (*tclient.Toxic, bool) {
 	for _, tox := range toxics {
-		n, ok := tox["name"]
-		if !ok {
-			t.Fatal("expected toxic to have name field")
-		}
-		if name == n {
-			return tox, true
+		if name == tox.Name {
+			return &tox, true
 		}
 	}
 	return nil, false
 }
 
-func AssertToxicExists(t *testing.T, toxics tclient.Toxics, name, typeName, stream string, exists bool) tclient.Toxic {
+func AssertToxicExists(t *testing.T, toxics tclient.Toxics, name, typeName, stream string, exists bool) *tclient.Toxic {
 	toxic, found := findToxic(t, name, toxics)
 	var actualType, actualStream string
 	if found {
-		actualType = toxic["type"].(string)
-		actualStream = toxic["stream"].(string)
+		actualType = toxic.Type
+		actualStream = toxic.Stream
 	}
 	if exists {
 		if !found {
