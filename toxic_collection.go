@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Shopify/toxiproxy/client"
 	"github.com/Shopify/toxiproxy/stream"
 	"github.com/Shopify/toxiproxy/toxics"
 )
@@ -98,12 +97,9 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 		return nil, joinError(err, ErrBadRequestBody)
 	}
 
-	// Default to a downstream toxic with toxicity 1
+	// Default to a downstream toxic
 	if wrapper.Stream == "" {
 		wrapper.Stream = "downstream"
-	}
-	if wrapper.Toxicity == 0 {
-		wrapper.Toxicity = 1
 	}
 
 	if wrapper.Name == "" {
@@ -150,29 +146,21 @@ func (c *ToxicCollection) UpdateToxicJson(name string, data io.Reader) (*toxics.
 	c.Lock()
 	defer c.Unlock()
 
-	var buffer bytes.Buffer
-	all := toxiproxy.Toxic{}
-	err := json.NewDecoder(io.TeeReader(data, &buffer)).Decode(&all)
-	if err != nil {
-		return nil, joinError(err, ErrBadRequestBody)
-	}
-
 	for dir := range c.toxics {
 		for _, toxic := range c.toxics[dir] {
 			if toxic.Name == name {
 				attrs := &struct {
 					Attributes interface{} `json:attributes`
+					Toxicity   float32     `json:toxicity`
 				}{
 					toxic.Toxic,
+					toxic.Toxicity,
 				}
-				err = json.NewDecoder(&buffer).Decode(attrs)
+				err := json.NewDecoder(data).Decode(attrs)
 				if err != nil {
 					return nil, joinError(err, ErrBadRequestBody)
 				}
-
-				if all.Toxicity != 0 {
-					toxic.Toxicity = all.Toxicity
-				}
+				toxic.Toxicity = attrs.Toxicity
 
 				c.chainUpdateToxic(toxic)
 				return toxic, nil

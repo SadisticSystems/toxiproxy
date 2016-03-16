@@ -17,12 +17,14 @@ type Client struct {
 	endpoint string
 }
 
+type Attributes map[string]interface{}
+
 type Toxic struct {
-	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	Stream     string                 `json:"stream"`
-	Toxicity   float32                `json:"toxicity"`
-	Attributes map[string]interface{} `json:"attributes"`
+	Name       string     `json:"name"`
+	Type       string     `json:"type"`
+	Stream     string     `json:"stream"`
+	Toxicity   float32    `json:"toxicity"`
+	Attributes Attributes `json:"attributes"`
 }
 
 type Toxics []Toxic
@@ -233,18 +235,13 @@ func (proxy *Proxy) Toxics() (Toxics, error) {
 }
 
 // AddToxic adds a toxic to the given stream direction.
-// If a name is not specified, it will default to the same as the type.
+// If a name is not specified, it will default to <type>_<stream>.
 // If a stream is not specified, it will default to downstream.
 // See https://github.com/Shopify/toxiproxy#toxics for a list of all Toxic types.
-func (proxy *Proxy) AddToxic(name, typeName, stream string, toxic *Toxic) (*Toxic, error) {
-	if toxic == nil {
-		toxic = &Toxic{}
-	}
-	toxic.Name = name
-	toxic.Type = typeName
-	toxic.Stream = stream
+func (proxy *Proxy) AddToxic(name, typeName, stream string, toxicity float32, attrs Attributes) (*Toxic, error) {
+	toxic := Toxic{name, typeName, stream, toxicity, attrs}
 
-	request, err := json.Marshal(toxic)
+	request, err := json.Marshal(&toxic)
 	if err != nil {
 		return nil, err
 	}
@@ -269,8 +266,9 @@ func (proxy *Proxy) AddToxic(name, typeName, stream string, toxic *Toxic) (*Toxi
 }
 
 // UpdateToxic sets the parameters for an existing toxic with the given name.
-func (proxy *Proxy) UpdateToxic(name string, toxic *Toxic) (*Toxic, error) {
-	request, err := json.Marshal(toxic)
+func (proxy *Proxy) UpdateToxic(name string, toxicity float32, attrs Attributes) (*Toxic, error) {
+	toxic := Toxic{Toxicity: toxicity, Attributes: attrs}
+	request, err := json.Marshal(&toxic)
 	if err != nil {
 		return nil, err
 	}

@@ -309,11 +309,9 @@ func TestResetState(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("", "latency", "downstream", &tclient.Toxic{
-			Attributes: map[string]interface{}{
-				"latency": 100,
-				"jitter":  10,
-			},
+		latency, err := testProxy.AddToxic("", "latency", "downstream", 1, tclient.Attributes{
+			"latency": 100,
+			"jitter":  10,
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
@@ -375,11 +373,9 @@ func TestAddToxic(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("foobar", "latency", "downstream", &tclient.Toxic{
-			Attributes: map[string]interface{}{
-				"latency": 100,
-				"jitter":  10,
-			},
+		latency, err := testProxy.AddToxic("foobar", "latency", "downstream", 1, tclient.Attributes{
+			"latency": 100,
+			"jitter":  10,
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
@@ -407,12 +403,12 @@ func TestAddMultipleToxics(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("latency1", "latency", "downstream", nil)
+		_, err = testProxy.AddToxic("latency1", "latency", "downstream", 1, nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		_, err = testProxy.AddToxic("latency2", "latency", "downstream", nil)
+		_, err = testProxy.AddToxic("latency2", "latency", "downstream", 1, nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
@@ -438,12 +434,12 @@ func TestAddConflictingToxic(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("foobar", "latency", "downstream", nil)
+		_, err = testProxy.AddToxic("foobar", "latency", "downstream", 1, nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		_, err = testProxy.AddToxic("foobar", "slow_close", "downstream", nil)
+		_, err = testProxy.AddToxic("foobar", "slow_close", "downstream", 1, nil)
 		if err == nil {
 			t.Fatal("Toxic did not result in conflict.")
 		} else if err.Error() != "AddToxic: HTTP 409: toxic already exists" {
@@ -469,12 +465,12 @@ func TestAddConflictingToxicsMultistream(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "upstream", nil)
+		_, err = testProxy.AddToxic("", "latency", "upstream", 1, nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "downstream", nil)
+		_, err = testProxy.AddToxic("", "latency", "downstream", 1, nil)
 		if err == nil {
 			t.Fatal("Toxic did not result in conflict.")
 		} else if err.Error() != "AddToxic: HTTP 409: toxic already exists" {
@@ -500,12 +496,9 @@ func TestAddToxicWithToxicity(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("", "latency", "downstream", &tclient.Toxic{
-			Toxicity: 0.2,
-			Attributes: map[string]interface{}{
-				"latency": 100,
-				"jitter":  10,
-			},
+		latency, err := testProxy.AddToxic("", "latency", "downstream", 0.2, tclient.Attributes{
+			"latency": 100,
+			"jitter":  10,
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
@@ -533,7 +526,7 @@ func TestAddNoop(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		noop, err := testProxy.AddToxic("foobar", "noop", "", nil)
+		noop, err := testProxy.AddToxic("foobar", "noop", "", 1, nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
@@ -560,11 +553,9 @@ func TestUpdateToxics(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		latency, err := testProxy.AddToxic("", "latency", "downstream", &tclient.Toxic{
-			Attributes: map[string]interface{}{
-				"latency": 100,
-				"jitter":  10,
-			},
+		latency, err := testProxy.AddToxic("", "latency", "downstream", 1, tclient.Attributes{
+			"latency": 100,
+			"jitter":  10,
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
@@ -574,11 +565,8 @@ func TestUpdateToxics(t *testing.T) {
 			t.Fatal("Latency toxic did not start up with correct settings:", latency)
 		}
 
-		latency, err = testProxy.UpdateToxic("latency", &tclient.Toxic{
-			Toxicity: 0.5,
-			Attributes: map[string]interface{}{
-				"latency": 1000,
-			},
+		latency, err = testProxy.UpdateToxic("latency", 0.5, tclient.Attributes{
+			"latency": 1000,
 		})
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
@@ -606,7 +594,7 @@ func TestRemoveToxic(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "downstream", nil)
+		_, err = testProxy.AddToxic("", "latency", "downstream", 1, nil)
 		if err != nil {
 			t.Fatal("Error setting toxic:", err)
 		}
@@ -658,7 +646,7 @@ func TestInvalidStream(t *testing.T) {
 			t.Fatal("Unable to create proxy:", err)
 		}
 
-		_, err = testProxy.AddToxic("", "latency", "walrustream", nil)
+		_, err = testProxy.AddToxic("", "latency", "walrustream", 1, nil)
 		if err == nil {
 			t.Fatal("Error setting toxic:", err)
 		}
