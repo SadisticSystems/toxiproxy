@@ -126,12 +126,12 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 		}
 	}
 
+	// Parse attributes because we now know the toxics type.
 	attrs := &struct {
-		Attributes interface{} `json:attributes`
+		Attributes interface{} `json:"attributes"`
 	}{
 		wrapper.Toxic,
 	}
-
 	err = json.NewDecoder(&buffer).Decode(attrs)
 	if err != nil {
 		return nil, joinError(err, ErrBadRequestBody)
@@ -150,8 +150,8 @@ func (c *ToxicCollection) UpdateToxicJson(name string, data io.Reader) (*toxics.
 		for _, toxic := range c.toxics[dir] {
 			if toxic.Name == name {
 				attrs := &struct {
-					Attributes interface{} `json:attributes`
-					Toxicity   float32     `json:toxicity`
+					Attributes interface{} `json:"attributes"`
+					Toxicity   float32     `json:"toxicity"`
 				}{
 					toxic.Toxic,
 					toxic.Toxicity,
