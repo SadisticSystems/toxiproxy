@@ -90,6 +90,7 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 	wrapper := &toxics.ToxicWrapper{
 		Stream:   "downstream",
 		Toxicity: 1.0,
+		Toxic:    new(toxics.NoopToxic),
 	}
 
 	err := json.NewDecoder(io.TeeReader(data, &buffer)).Decode(wrapper)
