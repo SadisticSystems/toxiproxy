@@ -284,7 +284,7 @@ func (proxy *Proxy) UpdateToxic(name string, toxicity float32, attrs Attributes)
 	}
 
 	result := &Toxic{}
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(result)
 	if err != nil {
 		return nil, err
 	}
