@@ -87,6 +87,7 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 
 	var buffer bytes.Buffer
 
+	// Default to a downstream toxic with a toxicity of 1.
 	wrapper := &toxics.ToxicWrapper{
 		Stream:   "downstream",
 		Toxicity: 1.0,
@@ -96,11 +97,6 @@ func (c *ToxicCollection) AddToxicJson(data io.Reader) (*toxics.ToxicWrapper, er
 	err := json.NewDecoder(io.TeeReader(data, &buffer)).Decode(wrapper)
 	if err != nil {
 		return nil, joinError(err, ErrBadRequestBody)
-	}
-
-	// Default to a downstream toxic
-	if wrapper.Stream == "" {
-		wrapper.Stream = "downstream"
 	}
 
 	if wrapper.Name == "" {
